@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReplyCraft</title>
+  <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+  <div class="popup-container" role="main">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="title">ReplyCraft</h1>
+      <button
+        id="settings-btn"
+        class="icon-btn"
+        aria-label="Open settings"
+        title="Settings"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- API Key Warning -->
+    <div id="api-key-warning" class="warning hidden" role="alert">
+      <p>Please configure your OpenAI API key to use ReplyCraft.</p>
+      <button id="open-settings-btn" class="btn btn-primary">Configure API Key</button>
+    </div>
+
+    <!-- Unsupported Page Warning -->
+    <div id="unsupported-warning" class="warning hidden" role="alert">
+      <p>ReplyCraft works on Reddit, Twitter/X, and Facebook post pages.</p>
+      <p class="hint">Navigate to a post to analyze the thread.</p>
+    </div>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <!-- Tone Selector -->
+      <div id="tone-selector-container" class="section"></div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button id="analyze-btn" class="btn btn-primary btn-block">
+          <span class="btn-text">Analyze Thread</span>
+          <span class="btn-loading hidden">
+            <span class="spinner"></span>
+            Analyzing...
+          </span>
+        </button>
+      </div>
+
+      <!-- Thread Summary -->
+      <div id="thread-summary" class="section hidden">
+        <h2 class="section-title">Thread Summary</h2>
+        <p id="summary-text" class="summary-text"></p>
+      </div>
+
+      <!-- Suggestions -->
+      <div id="suggestions-container" class="section hidden">
+        <h2 class="section-title">Reply Suggestions</h2>
+        <div id="suggestions-list" class="suggestions-list" role="list"></div>
+      </div>
+
+      <!-- Error Display -->
+      <div id="error-container" class="error-container hidden" role="alert">
+        <p id="error-message" class="error-message"></p>
+        <button id="error-dismiss" class="btn btn-secondary btn-small">Dismiss</button>
+      </div>
+    </main>
+
+    <!-- Settings Panel (hidden by default) -->
+    <div id="settings-panel" class="settings-panel hidden">
+      <div class="settings-header">
+        <button id="settings-back" class="icon-btn" aria-label="Back to main">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <h2 class="settings-title">Settings</h2>
+      </div>
+      <div id="settings-content" class="settings-content"></div>
+    </div>
+  </div>
+
+  <script type="module" src="popup.ts"></script>
+</body>
+</html>

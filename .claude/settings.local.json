@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed:*)",
+      "mcp__XcodeBuildMCP__list_sims",
+      "mcp__XcodeBuildMCP__build_sim",
+      "mcp__XcodeBuildMCP__discover_projs",
+      "mcp__XcodeBuildMCP__list_schemes",
+      "mcp__XcodeBuildMCP__build_run_sim",
+      "mcp__XcodeBuildMCP__screenshot",
+      "mcp__XcodeBuildMCP__tap",
+      "mcp__XcodeBuildMCP__describe_ui",
+      "mcp__XcodeBuildMCP__button",
+      "mcp__XcodeBuildMCP__swipe",
+      "mcp__XcodeBuildMCP__test_sim",
+      "Bash(xcodebuild test:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun xcresulttool get:*)",
+      "Bash(python3:*)",
+      "Bash(xcrun xcresulttool:*)",
+      "mcp__XcodeBuildMCP__show_build_settings",
+      "Bash(fd:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh --json \"subscription. What (Feature Description)\n\n  Add a premium subscription system to SceneFinder that monetizes the app through tiered pricing while maintaining a free tier with ads. The subscription will use native StoreKit 2 and gate advanced features behind\n  a paywall, including:\n\n  - Ad-free experience - Remove all Google AdMob banner and interstitial ads\n  - Unlimited video analysis - Analyze unlimited videos (free tier limited to 1 video at a time)\n  - Share analysis results - Share analysis results and clips with others (premium only)\n  - PDF analysis reports - (Planned for future release - not in MVP)\n\n  The implementation will use StoreKit 2 for subscription management with three pricing options:\n  - Annual: $36.00/year (marketed as $3.00/month with 86% savings)\n  - Weekly: $5.00/week\n  - One-Time Purchase: $72.00 (lifetime access)\n\n  The paywall UI will follow a clean design with prominent \"\"PREMIUM\"\" branding, feature list highlighting \"\"No ads. Unlimited analysis. Share results.\"\", and clear pricing cards with a \"\"Continue\"\" CTA button.\n\n  Why (Justification & Goals)\n\n  Business Goals:\n  1. Immediate monetization - Launch subscription system quickly with core features, adding PDF reports later\n  2. Diversify revenue streams - Currently relying solely on AdMob ads, subscriptions create predictable recurring revenue\n  3. Accessible pricing - Competitive pricing ($36/year) targets broader consumer market\n  4. Lifetime option - One-time purchase at $72 appeals to users who prefer ownership over subscriptions\n  5. MVP approach - Ship essential features first, iterate based on user feedback\n\n  User Experience Benefits:\n  1. Enhanced privacy - Premium users get an ad-free experience without tracking\n  2. Unrestricted analysis - Premium users can analyze entire video libraries without the 1-video limitation\n  3. Seamless sharing - Share clips and analysis results directly from the app\n  4. Flexible purchasing - Three pricing tiers cater to different user preferences\n  5. Clear upgrade path - Free users can test with 1 video, then upgrade for full functionality\n\n  Technical Advantages:\n  1. Native Apple solution - StoreKit 2 provides first-party reliability without third-party dependencies\n  2. Faster time to market - Focusing on core features (ads, limits, sharing) speeds up MVP launch\n  3. Reduced complexity - Postponing PDF reports simplifies initial implementation\n  4. Modern async/await API - StoreKit 2 integrates seamlessly with app''s Swift concurrency\n  5. Simple feature gates - Video limit and sharing restrictions are straightforward to implement\n\n  Market Positioning:\n  1. Try-before-buy - Users can test core functionality with 1 video before purchasing\n  2. Consumer-friendly pricing - $36/year competitive with similar utility apps\n  3. Clear value proposition - \"\"Unlimited analysis\"\" addresses immediate user pain point\n  4. Future roadmap - PDF reports as upcoming feature maintains user interest\n\n  Strategic Alignment:\n  1. MVP philosophy - Launch with core value proposition, iterate based on usage data\n  2. Natural conversion point - 1-video limit creates immediate upgrade trigger\n  3. Sustainable growth - Lower prices drive volume while maintaining profitability\n  4. Expansion ready - Infrastructure supports adding PDF reports in future update\n\n  Free vs Premium Comparison (MVP):\n\n  | Feature          | Free Tier                 | Premium                    |\n  |------------------|---------------------------|----------------------------|\n  | Video Analysis   | 1 video at a time         | Unlimited videos           |\n  | Batch Processing | Not available             | Unlimited batch processing |\n  | Advertisements   | Banner & interstitial ads | Ad-free experience         |\n  | Share Results    | ❌ Not available           | ✅ Share clips & analysis   |\n  | Event Detection  | ✅ All AI features         | ✅ All AI features          |\n  | Clip Generation  | ✅ 10-second clips         | ✅ 10-second clips          |\n  | Save to Photos   | ✅ Available               | ✅ Available                |\n  | PDF Reports      | ❌ Coming soon             | ❌ Coming soon              |\")"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "bypassPermissions"
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "sequential-thinking",
+    "puppeteer",
+    "XcodeBuildMCP"
+  ]
+}
