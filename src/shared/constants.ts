@@ -33,9 +33,9 @@ export const CACHE_CONFIG = {
 
 export const AI_CONFIG = {
   /** OpenAI model to use */
-  MODEL: 'gpt-4-turbo-preview',
+  MODEL: 'gpt-5-nano',
   /** Fallback model if primary unavailable */
-  FALLBACK_MODEL: 'gpt-3.5-turbo',
+  FALLBACK_MODEL: 'gpt-5-nano',
   /** Maximum tokens in response */
   MAX_TOKENS: 1500,
   /** Temperature for response generation */

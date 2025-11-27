@@ -121,8 +121,7 @@ export async function analyzeThread(
           content: prompt,
         },
       ],
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      temperature: AI_CONFIG.TEMPERATURE,
+      max_completion_tokens: AI_CONFIG.MAX_TOKENS,
     });
 
     const content = response.choices[0]?.message?.content;
@@ -171,8 +170,7 @@ export async function rewriteDraft(
           content: prompt,
         },
       ],
-      max_tokens: AI_CONFIG.MAX_TOKENS,
-      temperature: AI_CONFIG.TEMPERATURE,
+      max_completion_tokens: AI_CONFIG.MAX_TOKENS,
     });
 
     const content = response.choices[0]?.message?.content;
