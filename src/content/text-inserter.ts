@@ -81,11 +81,14 @@ export function insertText(
     // Use adapter's setInputText for platform-specific handling
     adapter.setInputText(input, text, false);
 
-    // Verify insertion worked
+    // Verify insertion worked by checking if text is now present
     const newText = adapter.getInputText(input);
+    const normalizedNew = newText.trim().replace(/\s+/g, ' ');
+    const normalizedExpected = text.trim().replace(/\s+/g, ' ');
 
-    if (newText !== text) {
-      // Fallback: try direct insertion methods
+    // Only use fallback if the text is completely missing (not just different formatting)
+    if (!normalizedNew.includes(normalizedExpected) && normalizedNew.length === 0) {
+      console.log('[ReplyCraft] Primary insertion failed, trying fallback');
       fallbackInsert(input, text);
     }
   } catch (error) {

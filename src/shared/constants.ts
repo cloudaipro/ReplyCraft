@@ -100,7 +100,7 @@ export const PLATFORM_NAMES: Record<Platform, string> = {
 // =============================================================================
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  selectedTone: 'friendly',
+  selectedTone: 'concise',
   customToneText: null,
   apiKey: '',
   cacheTTLHours: CACHE_CONFIG.DEFAULT_TTL_HOURS,
