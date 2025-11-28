@@ -104,11 +104,13 @@ export class RedditAdapter extends BasePlatformAdapter {
       // Try new shreddit-based extraction first, fall back to DOM selectors
       const postTitle = this.extractPostTitle();
       const postBody = this.extractPostBody();
+      const postAuthor = this.extractPostAuthor();
       const comments = this.extractComments();
 
       console.log('[ReplyCraft] Extracted:', {
         titleLength: postTitle.length,
         bodyLength: postBody.length,
+        postAuthor,
         commentCount: comments.length,
       });
 
@@ -123,6 +125,7 @@ export class RedditAdapter extends BasePlatformAdapter {
         url: window.location.href,
         postTitle: this.truncateText(postTitle, EXTRACTION_CONFIG.MAX_POST_TITLE_LENGTH),
         postBody: this.truncateText(postBody, EXTRACTION_CONFIG.MAX_POST_BODY_LENGTH),
+        postAuthor,
         comments,
         extractedAt: Date.now(),
       };
@@ -237,6 +240,38 @@ export class RedditAdapter extends BasePlatformAdapter {
 
     console.log('[ReplyCraft] No title found with any method');
     return '';
+  }
+
+  private extractPostAuthor(): string {
+    // Method 1: New Reddit - Get author from shreddit-post attribute
+    const shredditPost = document.querySelector('shreddit-post');
+    if (shredditPost) {
+      const author = shredditPost.getAttribute('author');
+      if (author) {
+        console.log('[ReplyCraft] Found post author from shreddit-post attribute:', author);
+        return author;
+      }
+    }
+
+    // Method 2: Try to find author link near post
+    const authorSelectors = [
+      '[data-testid="post_author_link"]',
+      'a[href^="/user/"]',
+      '.author',
+    ];
+    for (const selector of authorSelectors) {
+      const authorEl = document.querySelector(selector);
+      if (authorEl && authorEl.textContent) {
+        const author = authorEl.textContent.trim().replace(/^u\//, '');
+        if (author && author !== '[deleted]') {
+          console.log('[ReplyCraft] Found post author from selector:', selector);
+          return author;
+        }
+      }
+    }
+
+    console.log('[ReplyCraft] No post author found');
+    return '[unknown]';
   }
 
   private extractPostBody(): string {

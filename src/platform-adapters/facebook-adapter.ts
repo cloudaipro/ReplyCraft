@@ -84,6 +84,7 @@ export class FacebookAdapter extends BasePlatformAdapter {
       await this.waitForContent();
 
       const postBody = this.extractPostBody();
+      const postAuthor = this.extractPostAuthor();
       const comments = this.extractComments();
 
       if (!postBody) {
@@ -96,6 +97,7 @@ export class FacebookAdapter extends BasePlatformAdapter {
         url: window.location.href,
         postTitle: '', // Facebook doesn't have separate titles
         postBody: this.truncateText(postBody, EXTRACTION_CONFIG.MAX_POST_BODY_LENGTH),
+        postAuthor,
         comments,
         extractedAt: Date.now(),
       };
@@ -122,6 +124,37 @@ export class FacebookAdapter extends BasePlatformAdapter {
 
       check();
     });
+  }
+
+  private extractPostAuthor(): string {
+    // Try multiple strategies to find post author
+
+    // Strategy 1: Look for author name in article header
+    const articles = document.querySelectorAll('div[role="article"]');
+    for (const article of articles) {
+      // Find strong tag with link (usually author name)
+      const authorLink = article.querySelector('strong a[role="link"]');
+      if (authorLink && authorLink.textContent) {
+        return authorLink.textContent.trim();
+      }
+
+      // Try span with author name
+      const authorSpan = article.querySelector('h2 span a, h3 span a');
+      if (authorSpan && authorSpan.textContent) {
+        return authorSpan.textContent.trim();
+      }
+    }
+
+    // Strategy 2: Look for any prominent link at the top of post
+    const profileLinks = document.querySelectorAll('a[href*="/profile.php"], a[href^="https://www.facebook.com/"][role="link"]');
+    for (const link of profileLinks) {
+      const text = link.textContent?.trim();
+      if (text && text.length > 0 && text.length < 50 && !text.includes('http')) {
+        return text;
+      }
+    }
+
+    return 'Facebook User';
   }
 
   private extractPostBody(): string {

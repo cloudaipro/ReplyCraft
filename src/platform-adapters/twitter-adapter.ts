@@ -69,7 +69,7 @@ export class TwitterAdapter extends BasePlatformAdapter {
       // Wait a bit for dynamic content to load
       await this.waitForContent();
 
-      const mainTweet = this.extractMainTweet();
+      const { text: mainTweet, author: postAuthor } = this.extractMainTweet();
       const replies = this.extractReplies();
 
       if (!mainTweet) {
@@ -82,6 +82,7 @@ export class TwitterAdapter extends BasePlatformAdapter {
         url: window.location.href,
         postTitle: '', // Twitter doesn't have titles
         postBody: this.truncateText(mainTweet, EXTRACTION_CONFIG.MAX_POST_BODY_LENGTH),
+        postAuthor,
         comments: replies,
         extractedAt: Date.now(),
       };
@@ -111,7 +112,7 @@ export class TwitterAdapter extends BasePlatformAdapter {
     });
   }
 
-  private extractMainTweet(): string | null {
+  private extractMainTweet(): { text: string | null; author: string } {
     // The main tweet in a thread view is typically the first one
     // or the one that matches the URL's tweet ID
     const tweetId = this.getTweetIdFromUrl();
@@ -122,13 +123,30 @@ export class TwitterAdapter extends BasePlatformAdapter {
       const timeLink = tweet.querySelector('a[href*="/status/"]');
       if (timeLink && timeLink.getAttribute('href')?.includes(tweetId)) {
         const textEl = tweet.querySelector('[data-testid="tweetText"]');
-        return this.getTextContent(textEl);
+        const authorEl = tweet.querySelector('[data-testid="User-Name"] a');
+        return {
+          text: this.getTextContent(textEl),
+          author: this.extractTwitterUsername(authorEl),
+        };
       }
     }
 
-    // Fallback: just get the first tweet text
+    // Fallback: just get the first tweet text and author
+    const firstTweet = allTweets[0];
+    if (firstTweet) {
+      const textEl = firstTweet.querySelector('[data-testid="tweetText"]');
+      const authorEl = firstTweet.querySelector('[data-testid="User-Name"] a');
+      return {
+        text: this.getTextContent(textEl),
+        author: this.extractTwitterUsername(authorEl),
+      };
+    }
+
     const firstTweetText = this.queryFirst(TWITTER_SELECTORS.postBody);
-    return this.getTextContent(firstTweetText);
+    return {
+      text: this.getTextContent(firstTweetText),
+      author: '@unknown',
+    };
   }
 
   private getTweetIdFromUrl(): string {

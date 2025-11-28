@@ -32,6 +32,7 @@ export interface ThreadContext {
   url: string;
   postTitle: string;
   postBody: string;
+  postAuthor: string;
   comments: Comment[];
   extractedAt: number;
 }

@@ -24,13 +24,28 @@ ${toneDescription}
 ${threadContent}
 
 ## Instructions
-1. First, provide a brief 1-2 sentence summary of what the thread is about
-2. Then, generate ${AI_CONFIG.SUGGESTION_COUNT.DEFAULT} unique reply suggestions that:
-   - Are contextually relevant to the conversation
+1. First, identify what type of post this is:
+   - **Announcement/Promotion**: Developer sharing their app, product launch, or promotional offer
+   - **Question**: User asking for help, advice, or information
+   - **Discussion**: Opinion piece, news, or topic for debate
+   - **Support Request**: User reporting a bug or asking for technical help
+   - **Showcase**: User sharing their work, achievement, or creation
+
+2. Provide a brief 1-2 sentence summary of what the thread is about
+
+3. Generate ${AI_CONFIG.SUGGESTION_COUNT.DEFAULT} unique reply suggestions that:
+   - Are APPROPRIATE for the post type (e.g., for announcements: congratulate, express interest, ask relevant questions about the product - NOT offer unsolicited tech support)
+   - Match what a real human would actually reply with in this context
    - Match the requested tone
    - Offer different perspectives or approaches
    - Are appropriate for ${platformName}
    - Are concise but meaningful (typically 1-3 sentences each)
+
+**IMPORTANT**:
+- You are generating replies for someone who wants to COMMENT on this post. They are NOT the original poster.
+- Never generate replies as if the user is the author/OP of the post.
+- Never generate replies that assume the poster is asking for help unless they explicitly ARE asking for help.
+- For promotional/announcement posts, generate replies from a reader's perspective (e.g., "This looks great!", "Thanks for sharing!", "Just tried it out - works perfectly!").
 
 ## Response Format
 Respond with valid JSON in this exact format:
@@ -50,6 +65,11 @@ Respond with valid JSON in this exact format:
  */
 function formatThreadContent(context: ThreadContext): string {
   const parts: string[] = [];
+
+  // Add post author - CRITICAL for AI to know who wrote the post
+  if (context.postAuthor) {
+    parts.push(`### Original Poster (OP)\n**${context.postAuthor}** wrote this post. You are NOT this person - you are a different user who wants to reply.`);
+  }
 
   // Add post title if present
   if (context.postTitle) {

@@ -197,7 +197,20 @@ export async function rewriteDraft(
 function getSystemPrompt(): string {
   return `You are a helpful assistant that generates reply suggestions for social media conversations.
 
+CRITICAL: You are generating replies for a USER who wants to COMMENT on a post. The user is NOT the original poster (OP). They are a third-party reader who wants to engage with the post.
+
+First identify the POST TYPE before generating replies:
+- Announcement/Promotion: Generate comments from a reader's perspective (e.g., "This looks great!", "Thanks for sharing!", "Just downloaded it!")
+- Question: Generate helpful answers from a commenter's perspective
+- Discussion: Generate opinions/perspectives as a participant in the discussion
+- Support Request: Generate helpful suggestions as a fellow community member
+- Showcase: Generate appreciation/feedback as an audience member
+
+NEVER write replies as if the user is the author of the post. The user is always a COMMENTER, not the OP.
+
 Your responses should:
+- Match the post type (don't offer tech support for announcements)
+- Sound like what a real human would actually reply with
 - Be contextually relevant to the thread
 - Match the requested tone
 - Be appropriate for the platform
