@@ -9,9 +9,9 @@ import { getPreferences } from '@shared/storage';
 
 import { setupMessageHandler } from './message-handler';
 import { setupCachePruningAlarm } from './cache-service';
-import { rewriteDraft } from './ai-service';
+import { rewriteDraft, analyzeThread } from './ai-service';
 
-import type { Tone } from '@shared/types';
+import type { Tone, ThreadContext } from '@shared/types';
 
 // =============================================================================
 // Initialization
@@ -80,27 +80,19 @@ async function handleRewriteHotkey(): Promise<void> {
     return;
   }
 
-  if (!response.text) {
-    // Show toast notification that no text was found
-    await sendToContentScript({
-      type: 'SHOW_TOAST',
-      payload: {
-        message: 'No text found in reply box',
-        type: 'error',
-        duration: 3000,
-      },
-    });
-    return;
-  }
+  // Check for placeholder texts
+  const placeholderPatterns = [
+    /^write\s*(a\s*)?(comment|reply|message)/i,
+    /^add\s*(a\s*)?(comment|reply)/i,
+    /^what('s|s)?\s*(on\s*)?your\s*mind/i,
+    /^share\s*(your\s*)?(thoughts|opinion)/i,
+    /^type\s*(a\s*)?(message|comment|reply)/i,
+    /^post\s*(a\s*)?(comment|reply)/i,
+  ];
 
-  // Show loading toast
-  await sendToContentScript({
-    type: 'SHOW_TOAST',
-    payload: {
-      message: 'Rewriting...',
-      type: 'loading',
-    },
-  });
+  // Validate draft text - check if it's actual user content
+  const draftText = response.text?.trim() ?? '';
+  const hasUserText = draftText.length >= 2 && !placeholderPatterns.some(pattern => pattern.test(draftText));
 
   // Get preferences for tone
   const prefs = await getPreferences();
@@ -117,27 +109,77 @@ async function handleRewriteHotkey(): Promise<void> {
     return;
   }
 
+  if (hasUserText) {
+    // User has typed text - REWRITE it
+    await handleRewrite(sendToContentScript, draftText, response.inputSelector, prefs);
+  } else {
+    // No user text - GENERATE a new comment based on thread context
+    await handleGenerate(sendToContentScript, response.inputSelector, prefs);
+  }
+}
+
+// =============================================================================
+// Rewrite Handler (when user has typed text)
+// =============================================================================
+
+async function handleRewrite(
+  sendToContentScript: <T>(message: unknown) => Promise<T | null>,
+  draftText: string,
+  inputSelector: string | undefined,
+  prefs: { apiKey: string; selectedTone: string; customToneText?: string | null }
+): Promise<void> {
+  // Show loading toast
+  await sendToContentScript({
+    type: 'SHOW_TOAST',
+    payload: {
+      message: 'Rewriting...',
+      type: 'loading',
+    },
+  });
+
   try {
-    // Call AI service directly (don't use chrome.runtime.sendMessage - service worker can't message itself)
     const rewriteResult = await rewriteDraft(
-      response.text,
-      null, // No thread context in hotkey flow
+      draftText,
+      null,
       prefs.selectedTone as Tone,
       prefs.customToneText ?? undefined,
       prefs.apiKey
     );
 
     if (rewriteResult.success) {
+      const rewrittenText = rewriteResult.data.rewrittenText.trim();
+
+      // Check if the AI returned an error-like response
+      const errorPatterns = [
+        /^please\s+provide/i,
+        /^i('d|\s+would)\s+(need|like)/i,
+        /^(sorry|apologies)/i,
+        /^i\s+(can't|cannot|couldn't)/i,
+        /^there('s|\s+is)\s+no\s+text/i,
+        /^no\s+text\s+(was\s+)?provided/i,
+      ];
+
+      if (errorPatterns.some(pattern => pattern.test(rewrittenText))) {
+        await sendToContentScript({
+          type: 'SHOW_TOAST',
+          payload: {
+            message: 'Could not rewrite text. Please try again.',
+            type: 'error',
+            duration: 3000,
+          },
+        });
+        return;
+      }
+
       // Insert rewritten text
       await sendToContentScript({
         type: 'INSERT_TEXT',
         payload: {
-          text: rewriteResult.data.rewrittenText,
-          targetSelector: response.inputSelector,
+          text: rewrittenText,
+          targetSelector: inputSelector,
         },
       });
 
-      // Show success toast
       await sendToContentScript({
         type: 'SHOW_TOAST',
         payload: {
@@ -147,7 +189,6 @@ async function handleRewriteHotkey(): Promise<void> {
         },
       });
     } else {
-      // Show error toast
       await sendToContentScript({
         type: 'SHOW_TOAST',
         payload: {
@@ -163,6 +204,103 @@ async function handleRewriteHotkey(): Promise<void> {
       type: 'SHOW_TOAST',
       payload: {
         message: 'Failed to rewrite text',
+        type: 'error',
+        duration: 3000,
+      },
+    });
+  }
+}
+
+// =============================================================================
+// Generate Handler (when reply box is empty)
+// =============================================================================
+
+async function handleGenerate(
+  sendToContentScript: <T>(message: unknown) => Promise<T | null>,
+  inputSelector: string | undefined,
+  prefs: { apiKey: string; selectedTone: string; customToneText?: string | null }
+): Promise<void> {
+  // Show loading toast
+  await sendToContentScript({
+    type: 'SHOW_TOAST',
+    payload: {
+      message: 'Generating reply...',
+      type: 'loading',
+    },
+  });
+
+  try {
+    // Extract thread context from the page
+    const contextResponse = await sendToContentScript<{ context: ThreadContext | null }>({
+      type: 'EXTRACT_THREAD',
+    });
+
+    if (!contextResponse?.context) {
+      await sendToContentScript({
+        type: 'SHOW_TOAST',
+        payload: {
+          message: 'Could not extract thread content',
+          type: 'error',
+          duration: 3000,
+        },
+      });
+      return;
+    }
+
+    // Generate suggestions using analyzeThread
+    const result = await analyzeThread(
+      contextResponse.context,
+      prefs.selectedTone as Tone,
+      prefs.customToneText ?? undefined,
+      prefs.apiKey
+    );
+
+    if (result.success) {
+      const suggestions = result.data.suggestions;
+      if (suggestions.length > 0 && suggestions[0]) {
+        // Insert the first suggestion
+        await sendToContentScript({
+          type: 'INSERT_TEXT',
+          payload: {
+            text: suggestions[0].text,
+            targetSelector: inputSelector,
+          },
+        });
+
+        await sendToContentScript({
+          type: 'SHOW_TOAST',
+          payload: {
+            message: 'Reply generated!',
+            type: 'success',
+            duration: 2000,
+          },
+        });
+      } else {
+        await sendToContentScript({
+          type: 'SHOW_TOAST',
+          payload: {
+            message: 'No suggestions generated',
+            type: 'error',
+            duration: 3000,
+          },
+        });
+      }
+    } else {
+      await sendToContentScript({
+        type: 'SHOW_TOAST',
+        payload: {
+          message: result.error.message || 'Failed to generate reply',
+          type: 'error',
+          duration: 4000,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Generate request failed:', error);
+    await sendToContentScript({
+      type: 'SHOW_TOAST',
+      payload: {
+        message: 'Failed to generate reply',
         type: 'error',
         duration: 3000,
       },

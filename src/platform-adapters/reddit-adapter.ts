@@ -434,12 +434,27 @@ export class RedditAdapter extends BasePlatformAdapter {
     editor.focus();
 
     if (!append) {
-      // Select all and delete
-      document.execCommand('selectAll', false);
-      document.execCommand('delete', false);
+      // Clear existing content more thoroughly for Lexical
+      // First try to select all text using Selection API
+      const selection = window.getSelection();
+      if (selection) {
+        selection.selectAllChildren(editor);
+        selection.deleteFromDocument();
+      }
+
+      // Also clear any remaining content directly
+      // Find the paragraph element inside Lexical and clear it
+      const paragraph = editor.querySelector('p');
+      if (paragraph) {
+        paragraph.textContent = '';
+      } else if (editor.textContent) {
+        // Fallback: use execCommand
+        document.execCommand('selectAll', false);
+        document.execCommand('delete', false);
+      }
     }
 
-    // Insert text
+    // Insert text using execCommand
     document.execCommand('insertText', false, text);
 
     // Dispatch input event

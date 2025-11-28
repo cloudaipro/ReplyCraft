@@ -74,34 +74,19 @@ export function insertText(
   text: string,
   adapter: PlatformAdapter
 ): void {
-  // Store original text in case of rollback
-  const originalText = adapter.getInputText(input);
-
   try {
     // Use adapter's setInputText for platform-specific handling
     adapter.setInputText(input, text, false);
-
-    // Verify insertion worked by checking if text is now present
-    const newText = adapter.getInputText(input);
-    const normalizedNew = newText.trim().replace(/\s+/g, ' ');
-    const normalizedExpected = text.trim().replace(/\s+/g, ' ');
-
-    // Only use fallback if the text is completely missing (not just different formatting)
-    if (!normalizedNew.includes(normalizedExpected) && normalizedNew.length === 0) {
-      console.log('[ReplyCraft] Primary insertion failed, trying fallback');
-      fallbackInsert(input, text);
-    }
   } catch (error) {
-    console.error('[ReplyCraft] Text insertion failed:', error);
+    console.error('[ReplyCraft] Text insertion failed, trying fallback:', error);
 
-    // Try to restore original text
+    // Try fallback insertion
     try {
-      adapter.setInputText(input, originalText, false);
-    } catch {
-      // Ignore restore errors
+      fallbackInsert(input, text);
+    } catch (fallbackError) {
+      console.error('[ReplyCraft] Fallback insertion also failed:', fallbackError);
+      throw error;
     }
-
-    throw error;
   }
 }
 
