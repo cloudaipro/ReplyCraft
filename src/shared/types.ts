@@ -112,6 +112,25 @@ export interface ClearCacheRequest {
 }
 
 // =============================================================================
+// Message Types: Floating Action Button
+// =============================================================================
+
+export interface TriggerFABRequest {
+  type: 'TRIGGER_FAB';
+}
+
+export interface SetFABVisibilityRequest {
+  type: 'SET_FAB_VISIBILITY';
+  payload: {
+    visible: boolean;
+  };
+}
+
+export interface GetFABVisibilityRequest {
+  type: 'GET_FAB_VISIBILITY';
+}
+
+// =============================================================================
 // Message Types: Service Worker -> Content Script
 // =============================================================================
 
@@ -234,7 +253,8 @@ export type ContentToBackgroundMessage =
   | AnalyzeThreadRequest
   | RewriteDraftRequest
   | GetDraftTextResponse
-  | ClearCacheRequest;
+  | ClearCacheRequest
+  | TriggerFABRequest;
 
 export type BackgroundToContentMessage =
   | GetDraftTextRequest
@@ -336,4 +356,26 @@ export function isSuccessResponse<T>(response: Response<T>): response is Success
 
 export function isErrorResponse<T>(response: Response<T>): response is ErrorResponse {
   return response.success === false;
+}
+
+export function isTriggerFABRequest(msg: unknown): msg is TriggerFABRequest {
+  return (
+    typeof msg === 'object' && msg !== null && (msg as TriggerFABRequest).type === 'TRIGGER_FAB'
+  );
+}
+
+export function isSetFABVisibilityRequest(msg: unknown): msg is SetFABVisibilityRequest {
+  return (
+    typeof msg === 'object' &&
+    msg !== null &&
+    (msg as SetFABVisibilityRequest).type === 'SET_FAB_VISIBILITY'
+  );
+}
+
+export function isGetFABVisibilityRequest(msg: unknown): msg is GetFABVisibilityRequest {
+  return (
+    typeof msg === 'object' &&
+    msg !== null &&
+    (msg as GetFABVisibilityRequest).type === 'GET_FAB_VISIBILITY'
+  );
 }

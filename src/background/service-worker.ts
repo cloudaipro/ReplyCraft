@@ -6,6 +6,7 @@
 
 import { HOTKEY_CONFIG } from '@shared/constants';
 import { getPreferences } from '@shared/storage';
+import { isTriggerFABRequest } from '@shared/types';
 
 import { setupMessageHandler } from './message-handler';
 import { setupCachePruningAlarm } from './cache-service';
@@ -22,6 +23,9 @@ setupMessageHandler();
 
 // Set up cache pruning alarm
 setupCachePruningAlarm();
+
+// Set up FAB trigger handler
+setupFABHandler();
 
 // =============================================================================
 // Hotkey Command Handler
@@ -43,6 +47,113 @@ chrome.commands.onCommand.addListener((command: string) => {
     });
   }
 });
+
+// =============================================================================
+// FAB (Floating Action Button) Handler
+// =============================================================================
+
+let lastFABTriggerTime = 0;
+
+function setupFABHandler(): void {
+  chrome.runtime.onMessage.addListener(
+    (
+      message: unknown,
+      sender: chrome.runtime.MessageSender,
+      sendResponse: (response: { success: boolean }) => void
+    ): boolean => {
+      if (isTriggerFABRequest(message)) {
+        // Debounce
+        const now = Date.now();
+        if (now - lastFABTriggerTime < HOTKEY_CONFIG.DEBOUNCE_MS) {
+          sendResponse({ success: false });
+          return false;
+        }
+        lastFABTriggerTime = now;
+
+        // Handle FAB trigger with the sender's tab
+        handleFABTrigger(sender.tab)
+          .then(() => sendResponse({ success: true }))
+          .catch((error) => {
+            console.error('FAB handler error:', error);
+            sendResponse({ success: false });
+          });
+
+        return true; // Async response
+      }
+
+      return false; // Not handled by this listener
+    }
+  );
+}
+
+async function handleFABTrigger(tab: chrome.tabs.Tab | undefined): Promise<void> {
+  if (!tab?.id || !tab.url) {
+    console.warn('FAB triggered without valid tab');
+    return;
+  }
+
+  // Check if the current page is supported
+  if (!isPageSupported(tab.url)) {
+    console.log('FAB triggered on unsupported page:', tab.url);
+    return;
+  }
+
+  const tabId = tab.id;
+
+  // Helper to safely send messages to content script
+  const sendToContentScript = async <T>(message: unknown): Promise<T | null> => {
+    try {
+      return await chrome.tabs.sendMessage(tabId, message);
+    } catch {
+      return null;
+    }
+  };
+
+  // Send message to content script to get draft text
+  const response = await sendToContentScript<{ text?: string; inputSelector?: string }>({ type: 'GET_DRAFT_TEXT' });
+
+  if (response === null) {
+    console.log('Content script not loaded. Please refresh the page.');
+    return;
+  }
+
+  // Check for placeholder texts
+  const placeholderPatterns = [
+    /^write\s*(a\s*)?(comment|reply|message)/i,
+    /^add\s*(a\s*)?(comment|reply)/i,
+    /^what('s|s)?\s*(on\s*)?your\s*mind/i,
+    /^share\s*(your\s*)?(thoughts|opinion)/i,
+    /^type\s*(a\s*)?(message|comment|reply)/i,
+    /^post\s*(a\s*)?(comment|reply)/i,
+  ];
+
+  // Validate draft text
+  const draftText = response.text?.trim() ?? '';
+  const hasUserText = draftText.length >= 2 && !placeholderPatterns.some(pattern => pattern.test(draftText));
+
+  // Get preferences for tone
+  const prefs = await getPreferences();
+
+  if (!prefs.apiKey) {
+    await sendToContentScript({
+      type: 'SHOW_TOAST',
+      payload: {
+        message: 'Please configure API key in extension settings',
+        type: 'error',
+        duration: 5000,
+      },
+    });
+    return;
+  }
+
+  if (hasUserText) {
+    // User has typed text - REWRITE it
+    await handleRewrite(sendToContentScript, draftText, response.inputSelector, prefs);
+  } else {
+    // No user text - GENERATE a new comment based on thread context
+    await handleGenerate(sendToContentScript, response.inputSelector, prefs);
+  }
+}
 
 async function handleRewriteHotkey(): Promise<void> {
   // Get the active tab

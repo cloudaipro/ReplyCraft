@@ -8,14 +8,22 @@ import {
   isGetDraftTextRequest,
   isInsertTextRequest,
   isShowToastRequest,
+  isSetFABVisibilityRequest,
+  isGetFABVisibilityRequest,
 } from '@shared/types';
 import { getCurrentAdapter, isPageSupported } from '@adapters/adapter-factory';
 
 import { showToast, hideToast } from './toast';
 import { insertText, getLastFocusedInput, trackInputFocus } from './text-inserter';
 import { extractThreadContext } from './thread-extractor';
+import { initFloatingButton, showFAB, hideFAB } from './floating-button';
 
-import type { GetDraftTextResponse, InsertTextRequest, ShowToastRequest } from '@shared/types';
+import type {
+  GetDraftTextResponse,
+  InsertTextRequest,
+  ShowToastRequest,
+  SetFABVisibilityRequest,
+} from '@shared/types';
 
 // =============================================================================
 // Initialization
@@ -32,6 +40,11 @@ function initialize(): void {
 
   // Set up message listener
   chrome.runtime.onMessage.addListener(handleMessage);
+
+  // Initialize floating action button for mobile/touch devices
+  initFloatingButton().catch((error) => {
+    console.warn('[ReplyCraft] Failed to initialize FAB:', error);
+  });
 
   console.log('[ReplyCraft] Content script initialized');
 }
@@ -70,6 +83,22 @@ function handleMessage(
     handleShowToast(message as ShowToastRequest);
     sendResponse({ success: true });
     return false;
+  }
+
+  // SET_FAB_VISIBILITY - Show or hide the floating action button
+  if (isSetFABVisibilityRequest(message)) {
+    handleSetFABVisibility(message as SetFABVisibilityRequest)
+      .then(() => sendResponse({ success: true }))
+      .catch(() => sendResponse({ success: false }));
+    return true; // Async response
+  }
+
+  // GET_FAB_VISIBILITY - Get current FAB visibility state
+  if (isGetFABVisibilityRequest(message)) {
+    handleGetFABVisibility()
+      .then((visible) => sendResponse({ visible }))
+      .catch(() => sendResponse({ visible: true }));
+    return true; // Async response
   }
 
   return false;
@@ -159,6 +188,26 @@ function handleShowToast(request: ShowToastRequest): void {
     // Hide any loading toast first
     hideToast();
     showToast(message, type, duration);
+  }
+}
+
+async function handleSetFABVisibility(request: SetFABVisibilityRequest): Promise<void> {
+  const { visible } = request.payload;
+  if (visible) {
+    await showFAB();
+  } else {
+    await hideFAB();
+  }
+}
+
+async function handleGetFABVisibility(): Promise<boolean> {
+  const FAB_STORAGE_KEY = 'replycraft-fab-state';
+  try {
+    const result = await chrome.storage.local.get(FAB_STORAGE_KEY);
+    const state = result[FAB_STORAGE_KEY] as { visible?: boolean } | undefined;
+    return state?.visible ?? true;
+  } catch {
+    return true;
   }
 }
 
